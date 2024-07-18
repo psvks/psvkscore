@@ -12,7 +12,8 @@ function state:init(stateFile)
         file.close()
 
         for line in string.gmatch(content, "[^\r\n]+") do
-            local key, value = string.match(line, "([^%s]+)%s(.+)")
+            -- Using \t as separator instead of space
+            local key, value = string.match(line, "([^\t]+)\t(.+)")
             if key and value then
                 initial[key] = value
             end
@@ -25,23 +26,36 @@ function state:init(stateFile)
     end
 
     function initial:SetKey(key, value)
-        self[key] = value
-        self:Save()
+        -- Ensure key and value are strings
+        if type(key) == "string" and type(value) == "string" then
+            self[key] = value
+            self:Save()
+        else
+            error("Both key and value must be strings")
+        end
     end
 
     function initial:RemoveKey(key)
-        self[key] = nil
-        self:Save()
+        if type(key) == "string" then
+            self[key] = nil
+            self:Save()
+        else
+            error("Key must be a string")
+        end
     end
 
     function initial:Save()
         local file = fs.open(self.file, "w")
-        for key, value in pairs(self) do
-            if type(key) == "string" and type(value) == "string" and key ~= "file" then
-                file.write(key .. " " .. value .. "\n")
+        if file then
+            for key, value in pairs(self) do
+                if type(key) == "string" and type(value) == "string" and key ~= "file" then
+                    file.write(key .. "\t" .. value .. "\n")
+                end
             end
+            file.close()
+        else
+            error("Unable to open file for writing: " .. self.file)
         end
-        file.close()
     end
 
     return initial
